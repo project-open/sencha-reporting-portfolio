@@ -60,6 +60,10 @@ ad_proc -public sencha_milestone_tracker {
     set parent_id [db_string parent "select parent_id from im_projects where project_id = :project_id" -default ""]
     if {"" != $parent_id} { return "" }
 
+    # Discard any projects without children
+    set child_count [db_string child_count "select count(*) from im_projects where parent_id = :project_id" -default ""]
+    if {0 == $child_count} { return "" }
+
     # Choose the version and type of the sencha libs
     set version "v407"
     set ext "ext-all-debug-w-comments.js"
