@@ -23,14 +23,9 @@ ad_proc -public sencha_scatter_diagram {
     @param sql A sql statement returning the rows x_axis, 
 	y_axis, color and diameter for each dot to be displayed.
 } {
-    # Choose the version and type of the sencha libs
-    set version "v407"
-    set ext "ext-all-debug-w-comments.js"
-
-    # Make sure the Sencha library is loaded
-    template::head::add_css -href "/sencha-$version/ext-all.css" -media "screen" -order 1
-#    template::head::add_javascript -src "/sencha-$version/bootstrap.js" -order 2
-    template::head::add_javascript -src "/sencha-$version/$ext" -order 2
+    # Sencha check and permissions
+    if {![im_sencha_extjs_installed_p]} { return "" }
+    im_sencha_extjs_load_libraries
 
     set params [list \
 		    [list diagram_width $diagram_width] \
@@ -64,17 +59,11 @@ ad_proc -public sencha_milestone_tracker {
     set child_count [db_string child_count "select count(*) from im_projects where parent_id = :project_id" -default ""]
     if {0 == $child_count} { return "" }
 
-    # Choose the version and type of the sencha libs
-    set version "v407"
-    set ext "ext-all-debug-w-comments.js"
+    # Sencha check and permissions
+    if {![im_sencha_extjs_installed_p]} { return "" }
+    im_sencha_extjs_load_libraries
 
-    # Make sure the Sencha library is loaded
-    template::head::add_css -href "/sencha-$version/ext-all.css" -media "screen" -order 1
-#    template::head::add_javascript -src "/sencha-$version/bootstrap.js" -order 2
-    template::head::add_javascript -src "/sencha-$version/$ext" -order 2
-
-    set ext "ext-all-debug-w-comments.js"
-
+    # Call the lib portlet
     set params [list \
 		    [list project_id $project_id] \
 		    [list diagram_width $diagram_width] \
@@ -82,7 +71,6 @@ ad_proc -public sencha_milestone_tracker {
 		    [list diagram_title $diagram_title] \
 		    [list diagram_caption $diagram_caption] \
     ]
-
     set result [ad_parse_template -params $params "/packages/sencha-reporting-portfolio/lib/milestone-tracker"]
     return [string trim $result]
 }
@@ -118,13 +106,9 @@ ad_proc -public sencha_project_timeline {
     @param diagram_dimension Show what? "users" or "projects"
 
 } {
-    # Choose the version and type of the sencha libs
-    set version "v407"
-    set ext "ext-all-debug-w-comments.js"
-
-    # Make sure the Sencha library is loaded
-    template::head::add_css -href "/sencha-$version/ext-all.css" -media "screen" -order 1
-    template::head::add_javascript -src "/sencha-$version/$ext" -order 2
+    # Sencha check and permissions
+    if {![im_sencha_extjs_installed_p]} { return "" }
+    im_sencha_extjs_load_libraries
 
     set params [list \
 		    [list diagram_width $diagram_width] \
@@ -156,13 +140,9 @@ ad_proc -public sencha_project_eva {
 } {
     Returns a HTML code with a Sencha EVA diagram.
 } {
-    # Choose the version and type of the sencha libs
-    set version "v407"
-    set ext "ext-all-debug-w-comments.js"
-
-    # Make sure the Sencha library is loaded
-    template::head::add_css -href "/sencha-$version/ext-all.css" -media "screen" -order 1
-    template::head::add_javascript -src "/sencha-$version/$ext" -order 2
+    # Sencha check and permissions
+    if {![im_sencha_extjs_installed_p]} { return "" }
+    im_sencha_extjs_load_libraries
 
     set params [list \
 		    [list main_project_id $project_id] \
@@ -217,4 +197,3 @@ ad_proc -public sencha_main_project_colors_helper {
     }
     return [array get hash]
 }
-
