@@ -38,6 +38,8 @@ ad_proc -public sencha_scatter_diagram {
     return [string trim $result]
 }
 
+
+
 ad_proc -public sencha_milestone_tracker {
     -project_id:required
     {-diagram_width 300 }
@@ -196,4 +198,29 @@ ad_proc -public sencha_main_project_colors_helper {
 	set hash($pid) $color
     }
     return [array get hash]
+}
+
+
+
+ad_proc -public sencha_sales_pipeline {
+    {-diagram_width 300 }
+    {-diagram_height 300 }
+    {-diagram_caption "" }
+} {
+    Returns a HTML code with a Sencha diagram showing
+    the current projects in status "Potential", together
+    with presales_probability and presales_value.
+} {
+    # Sencha check and permissions
+    if {![im_sencha_extjs_installed_p]} { return "" }
+    im_sencha_extjs_load_libraries
+
+    set params [list \
+		    [list diagram_width $diagram_width] \
+		    [list diagram_height $diagram_height] \
+		    [list diagram_caption $diagram_caption]
+    ]
+
+    set result [ad_parse_template -params $params "/packages/sencha-reporting-portfolio/lib/sales-pipeline"]
+    return [string trim $result]
 }
