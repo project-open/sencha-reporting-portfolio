@@ -28,10 +28,17 @@ function launchDiagram(){
 
     projectMainStore.each(function (rec) {
 	console.log('Store.each: '+rec);
+	var color = "lightblue";
+	switch (rec.get('on_track_status_id') {
+	case '66':
+	    color = "green";
+	    break;
+	}
+
 	chartStore.add({
 	    x_axis: parseFloat(rec.get('presales_value')),
 	    y_axis: parseFloat(rec.get('presales_probability')),
-	    color: 'blue',
+	    color: color,
 	    diameter: 30,
 	    caption: rec.get('project_name')
 	});
@@ -41,7 +48,7 @@ function launchDiagram(){
 	return function(sprite, record, attr, index, store) {
 	    return Ext.apply(attr, {
 		radius: 20,                         // record.get('diameter'),
-		fill: 'green'                         // record.get('color')
+		fill: record.get('color')                         // record.get('color')
 	    });
 	};
     };
