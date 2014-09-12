@@ -17,7 +17,11 @@
 #	sql	Defines the columns x_axis, y_axis, color and diameter
 
 # Create a random ID for the diagram
-set diagram_id "sales_pipelin_[expr round(rand() * 100000000.0)]"
+set diagram_id "sales_pipeline_[expr round(rand() * 100000000.0)]"
+
+set currency [ad_parameter -package_id [im_package_cost_id] "DefaultCurrency" "" "EUR"]
+set value_l10n [lang::message::lookup "" intranet-core.Value Value]
+set prob_l10n [lang::message::lookup "" intranet-core.Probability Probability]
 
 set x_axis 0
 set y_axis 0

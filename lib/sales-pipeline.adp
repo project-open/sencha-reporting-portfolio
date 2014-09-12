@@ -18,23 +18,30 @@ Ext.require([
 ]);
 
 function launchDiagram(){
-    var statusStore = Ext.StoreManager.get('projectStatusStore');
     var projectMainStore = Ext.StoreManager.get('projectMainStore');
 
-    var store1 = Ext.create('Ext.data.JsonStore', {
+    var chartStore = Ext.create('Ext.data.JsonStore', {
         fields: ['x_axis', 'y_axis', 'color', 'diameter', 'caption'],
         data: [
-	    {x_axis: 909000.00, y_axis: 60.00, color: 'blue', diameter: 95.3414914924242200, caption: 'Play House (2014-05-09)'},
-	    {x_axis: 146400.00, y_axis: 80.00, color: 'blue', diameter: 38.2622529394179800, caption: 'Special Machine Half (2014-05-13)'},
-	    {x_axis: 57000.00, y_axis: 50.00, color: 'blue', diameter: 23.8746727726266400, caption: 'SCRUM Generic 1 (2014-05-14)'}
 	]
+    });
+
+    projectMainStore.each(function (rec) {
+	console.log('Store.each: '+rec);
+	chartStore.add({
+	    x_axis: parseFloat(rec.get('presales_value')),
+	    y_axis: parseFloat(rec.get('presales_probability')),
+	    color: 'blue',
+	    diameter: 30,
+	    caption: rec.get('project_name')
+	});
     });
 
     function createHandler(fieldName) {
 	return function(sprite, record, attr, index, store) {
 	    return Ext.apply(attr, {
-		radius: record.get('diameter'),
-		fill: record.get('color')
+		radius: 20,                         // record.get('diameter'),
+		fill: 'green'                         // record.get('color')
 	    });
 	};
     };
@@ -43,7 +50,7 @@ function launchDiagram(){
         width: 300,
         height: 300,
         animate: true,
-        store: store1,
+        store: chartStore,
         renderTo: '@diagram_id@',
 	axes: [{
 	    type: 'Numeric', position: 'left', fields: ['y_axis'], grid: true
@@ -58,11 +65,17 @@ function launchDiagram(){
 	    highlight: true,
 	    markerConfig: { type: 'circle' },
 	    renderer: createHandler('xxx'),
-	    label: {
-                display: 'under',
-                field: 'caption',
-                'text-anchor': 'left',
-		color: '#000'
+	    tips: {
+                trackMouse: false,
+                anchor: 'left',
+                width: 300,
+                height: 45,
+                renderer: function(storeItem, item) {
+                    var title = storeItem.get('caption') + '<br>' + 
+			'@value_l10n@: ' + storeItem.get('x_axis') + ', ' + 
+			'@prob_l10n@:' + storeItem.get('y_axis') + '%';
+                    this.setTitle(title);
+                }
             }
 	}]
     });
@@ -72,11 +85,9 @@ function launchDiagram(){
 Ext.onReady(function() {
     Ext.QuickTips.init();
 
-    var statusStore = Ext.create('PO.store.project.ProjectStatusStore');
     var projectMainStore = Ext.create('PO.store.project.ProjectMainStore');
     var coordinator = Ext.create('PO.controller.StoreLoadCoordinator', {
         stores: [
-            'projectStatusStore', 
             'projectMainStore'
         ],
         listeners: {
