@@ -25,42 +25,42 @@ function launchDiagram(){
     var chartStore = Ext.create('Ext.data.JsonStore', {
         fields: ['x_axis', 'y_axis', 'color', 'diameter', 'caption'],
         data: [
-	]
+        ]
     });
 
     // Transform project values into chart values
     projectMainStore.each(function (rec) {
-	var on_track_status = rec.get('on_track_status_id');         // "66"=green, "67"=yellow, "68"=red, ""=undef
-	var presales_value = rec.get('presales_value');              // String with number
-	var presales_probability = rec.get('presales_probability');  // String with number
-	if ("" == presales_value) { presales_value = 0;  }
-	if ("" == presales_probability) { presales_probability = 0; }
-	presales_value = parseFloat(presales_value);                 // Convert to float number
-	presales_probability = parseFloat(presales_probability);
+        var on_track_status = rec.get('on_track_status_id');         // "66"=green, "67"=yellow, "68"=red, ""=undef
+        var presales_value = rec.get('presales_value');              // String with number
+        var presales_probability = rec.get('presales_probability');  // String with number
+        if ("" == presales_value) { presales_value = 0;  }
+        if ("" == presales_probability) { presales_probability = 0; }
+        presales_value = parseFloat(presales_value);                 // Convert to float number
+        presales_probability = parseFloat(presales_probability);
 
-	var color = "white";
-	switch (on_track_status) {
-	case '66': color = "green"; break;
-	case '67': color = "orange"; break;
-	case '68': color = "red"; break;
-	}
+        var color = "white";
+        switch (on_track_status) {
+        case '66': color = "green"; break;
+        case '67': color = "orange"; break;
+        case '68': color = "red"; break;
+        }
 
-	chartStore.add({
-	    x_axis: presales_value,
-	    y_axis: presales_probability,
-	    color: color,
-	    diameter: 10,
-	    caption: rec.get('project_name')
-	});
+        chartStore.add({
+            x_axis: presales_value,
+            y_axis: presales_probability,
+            color: color,
+            diameter: 10,
+            caption: rec.get('project_name')
+        });
     });
 
     function createHandler(fieldName) {
-	return function(sprite, record, attr, index, store) {
-	    return Ext.apply(attr, {
-		radius: record.get('diameter'),
-		fill: record.get('color')
-	    });
-	};
+        return function(sprite, record, attr, index, store) {
+            return Ext.apply(attr, {
+                radius: record.get('diameter'),
+                fill: record.get('color')
+            });
+        };
     };
     
     var chart = new Ext.chart.Chart({
@@ -69,32 +69,32 @@ function launchDiagram(){
         animate: true,
         store: chartStore,
         renderTo: '@diagram_id@',
-	axes: [{
-	    type: 'Numeric', position: 'left', fields: ['y_axis'], grid: true
-	}, {
-	    type: 'Numeric', position: 'bottom', fields: ['x_axis']
-	}],
-	series: [{
-	    type: 'scatter',
-	    axis: 'left',
-	    xField: 'x_axis',
-	    yField: 'y_axis',
-	    highlight: true,
-	    markerConfig: { type: 'circle' },
-	    renderer: createHandler('xxx'),
-	    tips: {
+        axes: [{
+            type: 'Numeric', position: 'left', fields: ['y_axis'], grid: true
+        }, {
+            type: 'Numeric', position: 'bottom', fields: ['x_axis']
+        }],
+        series: [{
+            type: 'scatter',
+            axis: 'left',
+            xField: 'x_axis',
+            yField: 'y_axis',
+            highlight: true,
+            markerConfig: { type: 'circle' },
+            renderer: createHandler('xxx'),
+            tips: {
                 trackMouse: false,
                 anchor: 'left',
                 width: 300,
                 height: 45,
                 renderer: function(storeItem, item) {
                     var title = storeItem.get('caption') + '<br>' + 
-			'@value_l10n@: ' + storeItem.get('x_axis') + ', ' + 
-			'@prob_l10n@:' + storeItem.get('y_axis') + '%';
+                        '@value_l10n@: ' + storeItem.get('x_axis') + ', ' + 
+                        '@prob_l10n@:' + storeItem.get('y_axis') + '%';
                     this.setTitle(title);
                 }
             }
-	}]
+        }]
     });
 
     var dndOrgSprite = null;
@@ -102,36 +102,45 @@ function launchDiagram(){
     var dndStartXY = null;
     
     var onSpriteMouseDown = function(sprite, event, eOpts) {
-	console.log("onSpriteMouseDown: "+event.getXY());
-	dndOrgSprite = sprite;
-	dndStartXY = event.getXY();
+        console.log("onSpriteMouseDown: "+event.getXY());
+        dndOrgSprite = sprite;
+        dndStartXY = event.getXY();
 
-	// Create a copy of the sprite without fill
-	var attrs = Ext.clone(sprite.attr);
-	delete attrs.fill;
-	attrs.type = sprite.type;
-	attrs.radius = 15;
-	attrs.stroke = 'blue';
-	attrs['stroke-opacity'] = 1.0;
-	dndSpriteShadow = sprite.surface.add(attrs).show(true);
-	
+        // Create a copy of the sprite without fill
+        var attrs = Ext.clone(sprite.attr);
+        delete attrs.fill;
+        attrs.type = sprite.type;
+        attrs.radius = 15;
+        attrs.stroke = 'blue';
+        attrs['stroke-opacity'] = 1.0;
+        dndSpriteShadow = sprite.surface.add(attrs).show(true);
+        
     };
+
     var onSurfaceMouseMove = function(event, eOpts) {
-	if (dndOrgSprite == null) { return; }
-	console.log("onSurfaceMouseMove: "+event.getXY());
-	var xy = event.getXY();
-	dndSpriteShadow.setAttributes({
-	    x: xy.x,
-	    y: xy.y
-	}, true);
+        if (dndOrgSprite == null) { return; }
+        console.log("onSurfaceMouseMove: "+event.getXY());
+        var xy = event.getXY();
+        dndSpriteShadow.setAttributes({
+            x: xy[0] - dndStartXY[0],
+            y: xy[1] - dndStartXY[1]
+        }, true);
     };
 
     var onSurfaceMouseUp = function(event, eOpts) {
-	console.log("onSurfaceMouseUp: "+event.getXY());
-	this.remove(dndSpriteShadow, true);
-	dndSpriteShadow = null;
-	dndOrgSprite = null;
-	dndStart = null;
+        var xy = event.getXY();
+        console.log("onSurfaceMouseUp: "+xy);
+
+        // Subtract the start position from offset
+        xy[0] = xy[0] - dndStartXY[0];
+        xy[1] = xy[1] - dndStartXY[1];
+
+
+        // Close the DnD operation
+        this.remove(dndSpriteShadow, true);
+        dndSpriteShadow = null;
+        dndOrgSprite = null;
+        dndStart = null;
     };
 
 
@@ -139,7 +148,7 @@ function launchDiagram(){
     var surface = chart.surface;
     var items = surface.items.items;
     for (var i = 0, ln = items.length; i < ln; i++) {
-	items[i].on("mousedown", onSpriteMouseDown, items[i]);
+        items[i].on("mousedown", onSpriteMouseDown, items[i]);
     }
     surface.on("mousemove", onSurfaceMouseMove, surface);
     surface.on("mouseup", onSurfaceMouseUp, surface);
