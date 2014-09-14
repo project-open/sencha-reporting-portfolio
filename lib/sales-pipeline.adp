@@ -120,10 +120,10 @@ function launchDiagram(){
         if (dndSpriteShadow == null) { return; }
         // console.log("onSurfaceMouseMove: "+event.getXY());
         var xy = event.getXY();
-	var orgXY = dndSpriteShadow.dndStartXY;
+	var startXY = dndSpriteShadow.dndStartXY;
         dndSpriteShadow.setAttributes({
-            x: xy[0] - orgXY[0],
-            y: xy[1] - orgXY[1]
+            x: xy[0] - startXY[0],
+            y: xy[1] - startXY[1]
         }, true);
     };
 
@@ -132,9 +132,10 @@ function launchDiagram(){
 
         // Subtract the start position from offset
         var xy = event.getXY();
-	var orgXY = dndSpriteShadow.dndStartXY;
-        xy[0] = xy[0] - orgXY[0];
-        xy[1] = xy[1] - orgXY[1];
+	var startXY = dndSpriteShadow.dndStartXY;
+        xy[0] = xy[0] - startXY[0];
+        xy[1] = xy[1] - startXY[1];
+	surface = chart.surface;
 
 	// Update the sprite via the underyling store
         console.log("onSurfaceMouseUp: "+xy);
