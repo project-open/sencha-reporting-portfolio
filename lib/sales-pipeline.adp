@@ -97,14 +97,12 @@ function launchDiagram(){
         }]
     });
 
-    var dndOrgSprite = null;
+
+    // Drag - and - Drop variables: The DnD start position and the shape to move
     var dndSpriteShadow = null;
-    var dndStartXY = null;
     
     var onSpriteMouseDown = function(sprite, event, eOpts) {
         console.log("onSpriteMouseDown: "+event.getXY());
-        dndOrgSprite = sprite;
-        dndStartXY = event.getXY();
 
         // Create a copy of the sprite without fill
         var attrs = Ext.clone(sprite.attr);
@@ -114,32 +112,37 @@ function launchDiagram(){
         attrs.stroke = 'blue';
         attrs['stroke-opacity'] = 1.0;
         dndSpriteShadow = sprite.surface.add(attrs).show(true);
-        
+	dndSpriteShadow.dndOrgSprite = sprite;
+	dndSpriteShadow.dndStartXY = event.getXY();
     };
 
     var onSurfaceMouseMove = function(event, eOpts) {
-        if (dndOrgSprite == null) { return; }
-        console.log("onSurfaceMouseMove: "+event.getXY());
+        if (dndSpriteShadow == null) { return; }
+        // console.log("onSurfaceMouseMove: "+event.getXY());
         var xy = event.getXY();
+	var orgXY = dndSpriteShadow.dndStartXY;
         dndSpriteShadow.setAttributes({
-            x: xy[0] - dndStartXY[0],
-            y: xy[1] - dndStartXY[1]
+            x: xy[0] - orgXY[0],
+            y: xy[1] - orgXY[1]
         }, true);
     };
 
     var onSurfaceMouseUp = function(event, eOpts) {
-        var xy = event.getXY();
-        console.log("onSurfaceMouseUp: "+xy);
+        if (dndSpriteShadow == null) { return; }
 
         // Subtract the start position from offset
-        xy[0] = xy[0] - dndStartXY[0];
-        xy[1] = xy[1] - dndStartXY[1];
+        var xy = event.getXY();
+	var orgXY = dndSpriteShadow.dndStartXY;
+        xy[0] = xy[0] - orgXY[0];
+        xy[1] = xy[1] - orgXY[1];
 
+	// Update the sprite via the underyling store
+        console.log("onSurfaceMouseUp: "+xy);
+	
 
         // Close the DnD operation
         this.remove(dndSpriteShadow, true);
         dndSpriteShadow = null;
-        dndOrgSprite = null;
         dndStart = null;
     };
 
