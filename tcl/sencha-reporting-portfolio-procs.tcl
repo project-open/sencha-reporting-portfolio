@@ -52,6 +52,9 @@ ad_proc -public sencha_milestone_tracker {
     as milestones or with a type that is a sub-type of milestone).
     @param project_id The project to show
 } {
+    # Check if audit has been installed
+    if {![im_table_exists im_audit]} { return "" }
+
     # Check if the project is a main project and abort otherwise
     # We only want to show this diagram in a main project.
     set parent_id [db_string parent "select parent_id from im_projects where project_id = :project_id" -default ""]
@@ -142,6 +145,9 @@ ad_proc -public sencha_project_eva {
 } {
     Returns a HTML code with a Sencha EVA diagram.
 } {
+    # Check if audit has been installed
+    if {![im_table_exists im_audit]} { return "" }
+
     # Sencha check and permissions
     if {![im_sencha_extjs_installed_p]} { return "" }
     im_sencha_extjs_load_libraries
