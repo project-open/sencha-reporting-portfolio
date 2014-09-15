@@ -32,7 +32,7 @@ function launchDiagram(){
         var on_track_status = rec.get('on_track_status_id');         // "66"=green, "67"=yellow, "68"=red, ""=undef
         var presales_value = rec.get('presales_value');              // String with number
         var presales_probability = rec.get('presales_probability');  // String with number
-	if ("NaN" == presales_value) { presales_value = 0; }
+        if ("NaN" == presales_value) { presales_value = 0; }
         if ("" == presales_value) { presales_value = 0; }
         if ("NaN" == presales_probability) { presales_probability = 0; }
         if ("" == presales_probability) { presales_probability = 0; }
@@ -64,15 +64,15 @@ function launchDiagram(){
         renderTo: '@diagram_id@',
         axes: [{
             type: 'Numeric', 
-	    position: 'left', 
-	    fields: ['y_axis'], 
-	    grid: true,
-	    minimum: 0
+            position: 'left', 
+            fields: ['y_axis'], 
+            grid: true,
+            minimum: 0
         }, {
             type: 'Numeric', 
-	    position: 'bottom', 
-	    fields: ['x_axis'],
-	    minimum: 0
+            position: 'bottom', 
+            fields: ['x_axis'],
+            minimum: 0
         }],
         series: [{
             type: 'scatter',
@@ -141,7 +141,7 @@ function launchDiagram(){
 
     var onSurfaceMouseUp = function(event, eOpts) {
         if (dndSpriteShadow == null) { return; }
-	var xy = event.getXY();
+        var xy = event.getXY();
         var surface = chart.surface;
 
         // Event coordinates relative to surface (why?)
@@ -152,34 +152,36 @@ function launchDiagram(){
         var xAxis = chart.axes.get('bottom');
         var yAxis = chart.axes.get('left');
 
-	// Relative movement of sprite from original position
-	var relX = xy[0] - dndSpriteShadow.dndStartXY[0];
-	var relY = xy[1] - dndSpriteShadow.dndStartXY[1];
-	relY = -relY;
+        // Relative movement of sprite from original position
+        var relX = xy[0] - dndSpriteShadow.dndStartXY[0];
+        var relY = xy[1] - dndSpriteShadow.dndStartXY[1];
+        relY = -relY;
 
-	// Relative value changed for sprite values
+        // Relative value changed for sprite values
         var relValueX = relX * (xAxis.to - xAxis.from) / xAxis.length;
         var relValueY = relY * (yAxis.to - yAxis.from) / yAxis.length;
         console.log("onSurfaceMouseUp: pid="+project_id+", relXY=("+relX+","+relY+"), val=("+relValueX+","+relValueY+")");
 
-	// Write updated values into store
+        // Write updated values into server store
         var project_id = dndSpriteShadow.attr.project_id;
-	var rec = projectMainStore.getById(""+project_id);
-
-	// Update the record on the server side
+        var rec = projectMainStore.getById(""+project_id);
         var presales_value = parseFloat(rec.get('presales_value'));
         var presales_probability = parseFloat(rec.get('presales_probability'));
-	if (isNaN(presales_value)) { presales_value = 0; }
+        if (isNaN(presales_value)) { presales_value = 0; }
         if (isNaN(presales_probability)) { presales_probability = 0; }
         presales_value = presales_value + relValueX;
         presales_probability = presales_probability + relValueY;
-	if (presales_probability > 100.0) { presales_probability = 100.0; }
-	if (presales_probability < 0.0) { presales_probability = 0.0; }
-
-	rec.set('presales_value', ""+presales_value);
-	rec.set('presales_probability', ""+presales_probability);
-	rec.save();
+        if (presales_probability > 100.0) { presales_probability = 100.0; }
+        if (presales_probability < 0.0) { presales_probability = 0.0; }
+        rec.set('presales_value', ""+presales_value);
+        rec.set('presales_probability', ""+presales_probability);
+        rec.save();
         console.log("onSurfaceMouseUp: pid="+project_id+", value="+presales_value+", prob="+presales_probability);
+
+        // Update the record of the chartStore
+        var rec = chartStore.getAt(chartStore.find('project_id', ""+project_id));
+        rec.set('x_axis', presales_value);
+        rec.set('y_axis', presales_probability);
 
         // Close the DnD operation
         this.remove(dndSpriteShadow, true);
