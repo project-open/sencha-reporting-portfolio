@@ -23,9 +23,8 @@ function launchDiagram(){
 
     // Store of chart items with chart specific values x_axis, color, etc.
     var chartStore = Ext.create('Ext.data.JsonStore', {
-        fields: ['x_axis', 'y_axis', 'color', 'diameter', 'caption'],
-        data: [
-        ]
+        fields: ['x_axis', 'y_axis', 'color', 'diameter', 'caption', 'project_id'],
+        data: []
     });
 
     // Transform project values into chart values
@@ -50,19 +49,11 @@ function launchDiagram(){
             y_axis: presales_probability,
             color: color,
             diameter: 10,
-            caption: rec.get('project_name')
+            caption: rec.get('project_name'),
+	    project_id: rec.get('project_id')
         });
     });
 
-    function createHandler(fieldName) {
-        return function(sprite, record, attr, index, store) {
-            return Ext.apply(attr, {
-                radius: record.get('diameter'),
-                fill: record.get('color')
-            });
-        };
-    };
-    
     var chart = new Ext.chart.Chart({
         width: 300,
         height: 300,
@@ -81,7 +72,17 @@ function launchDiagram(){
             yField: 'y_axis',
             highlight: true,
             markerConfig: { type: 'circle' },
-            renderer: createHandler('xxx'),
+            renderer: function(sprite, record, attr, index, store) {
+		// Set the properties of every scatter sprite
+		// project_id allows us to trace the drag-and-drop sprite
+		// back to it's original store for updating the entry there.
+                var newAttr = Ext.apply(attr, {
+                    radius: record.get('diameter'),
+                    fill: record.get('color'),
+                    project_id: record.get('project_id')
+                });
+                return newAttr;
+            },
             tips: {
                 trackMouse: false,
                 anchor: 'left',
@@ -112,15 +113,15 @@ function launchDiagram(){
         attrs.stroke = 'blue';
         attrs['stroke-opacity'] = 1.0;
         dndSpriteShadow = sprite.surface.add(attrs).show(true);
-	dndSpriteShadow.dndOrgSprite = sprite;
-	dndSpriteShadow.dndStartXY = event.getXY();
+        dndSpriteShadow.dndOrgSprite = sprite;
+        dndSpriteShadow.dndStartXY = event.getXY();
     };
 
     var onSurfaceMouseMove = function(event, eOpts) {
         if (dndSpriteShadow == null) { return; }
         // console.log("onSurfaceMouseMove: "+event.getXY());
         var xy = event.getXY();
-	var startXY = dndSpriteShadow.dndStartXY;
+        var startXY = dndSpriteShadow.dndStartXY;
         dndSpriteShadow.setAttributes({
             x: xy[0] - startXY[0],
             y: xy[1] - startXY[1]
@@ -132,14 +133,30 @@ function launchDiagram(){
 
         // Subtract the start position from offset
         var xy = event.getXY();
-	var startXY = dndSpriteShadow.dndStartXY;
+	var x = xy[0];
+	var y = xy[1];
+        var startXY = dndSpriteShadow.dndStartXY;
         xy[0] = xy[0] - startXY[0];
         xy[1] = xy[1] - startXY[1];
-	surface = chart.surface;
+        surface = chart.surface;
 
-	// Update the sprite via the underyling store
-        console.log("onSurfaceMouseUp: "+xy);
+        // Update the sprite via the underyling store
+	var project_id = dndSpriteShadow.attr.project_id;
+	var xAxis = chart.axes.get('bottom');
+	var yAxis = chart.axes.get('left');
 	
+	// Calculate X value
+	var xFromCoor = xAxis.x;
+	var xLengthCoor = xAxis.length;
+	var xToCoor = xFromCoor + xLengthCoor;
+
+	var xFromValue = xAxis.from;
+	var xToValue = xAxis.to;
+
+	var newValue = xFromValue + (x - xFromCoor) * (xToValue - xFromValue) / (xToCoor - xFromCoor);
+
+
+        console.log("onSurfaceMouseUp: pid="+project_id+", x/y="+xy);
 
         // Close the DnD operation
         this.remove(dndSpriteShadow, true);
