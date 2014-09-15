@@ -50,7 +50,7 @@ function launchDiagram(){
             color: color,
             diameter: 10,
             caption: rec.get('project_name'),
-	    project_id: rec.get('project_id')
+            project_id: rec.get('project_id')
         });
     });
 
@@ -73,9 +73,9 @@ function launchDiagram(){
             highlight: true,
             markerConfig: { type: 'circle' },
             renderer: function(sprite, record, attr, index, store) {
-		// Set the properties of every scatter sprite
-		// project_id allows us to trace the drag-and-drop sprite
-		// back to it's original store for updating the entry there.
+                // Set the properties of every scatter sprite
+                // project_id allows us to trace the drag-and-drop sprite
+                // back to it's original store for updating the entry there.
                 var newAttr = Ext.apply(attr, {
                     radius: record.get('diameter'),
                     fill: record.get('color'),
@@ -103,7 +103,9 @@ function launchDiagram(){
     var dndSpriteShadow = null;
     
     var onSpriteMouseDown = function(sprite, event, eOpts) {
-        console.log("onSpriteMouseDown: "+event.getXY());
+        var offsetX = event.browserEvent.offsetX;
+        var offsetY = event.browserEvent.offsetY;
+        console.log("onSpriteMouseDown: "+offsetX+","+offsetY);
 
         // Create a copy of the sprite without fill
         var attrs = Ext.clone(sprite.attr);
@@ -130,33 +132,21 @@ function launchDiagram(){
 
     var onSurfaceMouseUp = function(event, eOpts) {
         if (dndSpriteShadow == null) { return; }
-
-        // Subtract the start position from offset
-        var xy = event.getXY();
-	var x = xy[0];
-	var y = xy[1];
-        var startXY = dndSpriteShadow.dndStartXY;
-        xy[0] = xy[0] - startXY[0];
-        xy[1] = xy[1] - startXY[1];
         surface = chart.surface;
 
+        // Event coordinates relative to surface (why?)
+        var offsetX = event.browserEvent.offsetX;
+        var offsetY = event.browserEvent.offsetY;
+
         // Update the sprite via the underyling store
-	var project_id = dndSpriteShadow.attr.project_id;
-	var xAxis = chart.axes.get('bottom');
-	var yAxis = chart.axes.get('left');
-	
-	// Calculate X value
-	var xFromCoor = xAxis.x;
-	var xLengthCoor = xAxis.length;
-	var xToCoor = xFromCoor + xLengthCoor;
+        var project_id = dndSpriteShadow.attr.project_id;
+        var xAxis = chart.axes.get('bottom');
+        var yAxis = chart.axes.get('left');
 
-	var xFromValue = xAxis.from;
-	var xToValue = xAxis.to;
+        var xValue = (offsetX - xAxis.x) * (xAxis.to - xAxis.from) / xAxis.length;
+        var yValue = (offsetY - yAxis.y) * (yAxis.to - yAxis.from) / yAxis.length;
 
-	var newValue = xFromValue + (x - xFromCoor) * (xToValue - xFromValue) / (xToCoor - xFromCoor);
-
-
-        console.log("onSurfaceMouseUp: pid="+project_id+", x/y="+xy);
+        console.log("onSurfaceMouseUp: pid="+project_id+", xy=("+offsetX+","+offsetY+"), val=("+xValue+","+yValue+")");
 
         // Close the DnD operation
         this.remove(dndSpriteShadow, true);
