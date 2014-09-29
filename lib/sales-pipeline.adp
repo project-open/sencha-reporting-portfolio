@@ -194,7 +194,9 @@ function launchDiagram(){
     var surface = chart.surface;
     var items = surface.items.items;
     for (var i = 0, ln = items.length; i < ln; i++) {
-        items[i].on("mousedown", onSpriteMouseDown, items[i]);
+	var sprite = items[i];
+	if (sprite.type != "circle") { continue; } // only add listeners to circles
+        sprite.on("mousedown", onSpriteMouseDown, sprite);
     }
     surface.on("mousemove", onSurfaceMouseMove, surface);
     surface.on("mouseup", onSurfaceMouseUp, surface);
