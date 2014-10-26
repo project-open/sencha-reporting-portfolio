@@ -17,6 +17,8 @@ Ext.require([
     'PO.store.project.ProjectMainStore'
 ]);
 
+var projectBaseUrl = "/intranet/projects/view?project_id=";
+
 function launchDiagram(){
     // Store of all main projects and project specific fields
     var projectMainStore = Ext.StoreManager.get('projectMainStore');
@@ -63,13 +65,15 @@ function launchDiagram(){
         store: chartStore,
         renderTo: '@diagram_id@',
         axes: [{
-            type: 'Numeric', 
+            type: 'Numeric',
+	    title: 'Probability (%)',
             position: 'left', 
             fields: ['y_axis'], 
             grid: true,
             minimum: 0
         }, {
             type: 'Numeric', 
+	    title: 'Value (@default_currency@)',
             position: 'bottom', 
             fields: ['x_axis'],
             minimum: 0
@@ -98,9 +102,10 @@ function launchDiagram(){
                 width: 300,
                 height: 45,
                 renderer: function(storeItem, item) {
-                    var title = storeItem.get('caption') + '<br>' + 
-                        '@value_l10n@: ' + storeItem.get('x_axis') + ', ' + 
-                        '@prob_l10n@:' + storeItem.get('y_axis') + '%';
+                    var title = "<a href=\"" + projectBaseUrl + storeItem.get('project_id') + '\">' + 
+			storeItem.get('caption') + '</a>' + '<br>' + 
+                        '@value_l10n@: ' + parseFloat(storeItem.get('x_axis')).toFixed(1) + ', ' + 
+                        '@prob_l10n@:' + parseFloat(storeItem.get('y_axis')).toFixed(1) + '%';
                     this.setTitle(title);
                 }
             }
