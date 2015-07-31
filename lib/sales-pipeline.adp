@@ -13,7 +13,7 @@ Ext.require([
     'Ext.data.*',
     'Ext.grid.*',
     'Ext.tree.*',
-    'PO.class.CategoryStore',
+    'PO.store.CategoryStore',
     'PO.store.project.ProjectMainStore'
 ]);
 
