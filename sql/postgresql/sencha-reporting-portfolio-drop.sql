@@ -18,6 +18,7 @@
 -----------------------------------------------------
 -- Drop menus and components defined by the module
 
-select im_menu__del_module('sencha-reporting-portfolio');
 select im_component_plugin__del_module('sencha-reporting-portfolio');
+select im_report__del_module('sencha-reporting-portfolio');
+select im_menu__del_module('sencha-reporting-portfolio');
 
