@@ -25,7 +25,7 @@ ad_page_contract {
 # Security & Defaults
 # ---------------------------------------------------------------
 
-set user_id [ad_maybe_redirect_for_registration]
+set user_id [auth::require_login]
 set page_title [lang::message::lookup "" intranet-reporting-portfolio.Skill_Profile_Occupation "Skill Profile Occupation"]
 set context [im_context_bar $page_title]
 
