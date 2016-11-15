@@ -13,6 +13,7 @@
     <version name="5.0.2.0.0" url="http://www.project-open.net/download/apm/sencha-reporting-portfolio-5.0.2.0.0.apm">
         <owner url="mailto:frank.bergmann@project-open.com">Frank Bergmann</owner>
         <summary>Interface to Sencha JavaScript Libraries</summary>
+        <release-date>2016-11-15</release-date>
         <vendor url="http://www.project-open.com/">]project-open[</vendor>
         <description format="text/plain">Supports chart and other Sencha widgets.</description>
         <maturity>0</maturity>
