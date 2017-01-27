@@ -53,7 +53,7 @@ ad_proc -public sencha_milestone_tracker {
     @param project_id The project to show
 } {
     # Check if audit has been installed
-    if {![im_table_exists im_audit]} { return "" }
+    if {![im_table_exists im_audits]} { return "" }
 
     # Check if the project is a main project and abort otherwise
     # We only want to show this diagram in a main project.
