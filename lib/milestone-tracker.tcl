@@ -18,200 +18,216 @@
 
 if {![info exists diagram_width]} { set diagram_width 300 }
 if {![info exists diagram_height]} { set diagram_height 300 }
-
-set year 2000
-set month "01"
-set day "01"
-
-set data_list {}
-
-# project_id may be overwritten by SQLs below
 set main_project_id $project_id
-
 
 # Create a random ID for the diagram
 set diagram_rand [expr round(rand() * 100000000.0)]
 set diagram_id "milestone_tracker_$diagram_rand"
+set show_diagram_p 1
 
+set audit_dates_max_entries 15
+
+
+# -------------------------------------------------------------
+# Compile the list of milestones to be reported
+# -------------------------------------------------------------
 
 # Check if there is at least one correctly defined
 # milestone in the project.
-set milestone_count [db_string milestone_count "
-	select	count(*)
+set milestone_ptypes [im_sub_categories [im_project_type_milestone]]
+set milestone_list [db_list milestone_list "
+	select	child.project_id
+	from	im_projects parent, 
+		im_projects child 
+	where	parent.project_id = :main_project_id and 
+		child.tree_sortkey between parent.tree_sortkey and tree_right(parent.tree_sortkey) and
+		(child.milestone_p = 't' OR child.project_type_id in ([join $milestone_ptypes ","]))
+"]
+
+if {1 || [llength $milestone_list] < 3} {
+    # We didn't find at least 3 "real" milestones in the project.
+    # Try using the project "phases" (1st level task right below
+    # the main projects.
+    set milestone_list [db_list milestone_list "
+	select	child.project_id
 	from	im_projects parent, 
 		im_projects child 
 	where	parent.project_id = :main_project_id and 
 		child.parent_id = parent.project_id and
-		(child.milestone_p = 't' 
-		OR child.project_type_id in ([join [im_sub_categories [im_project_type_milestone]] ","]))
-"]
-
-if {$milestone_count} {
-    set milestone_sql "and (child.milestone_p = 't' OR child.project_type_id in ([join [im_sub_categories [im_project_type_milestone]] ","]))"
-} else {
-    # There are no milestones defined, so just
-    # just show all sub-projects
-    set milestone_sql "and child.project_type_id not in ([im_project_type_ticket], [im_project_type_task])"
+		child.project_type_id not in ([im_project_type_ticket])
+    "]
 }
 
-# ToDo: Remove: Debugging
-set milestone_sql ""
+if {"" eq $milestone_list} { set milestone_list {0} }
+if {[llength $milestone_list] < 3} { set show_diagram_p 0 }
 
-# Pull out the history of the project's milestones over time.
-# Start to pull out the different days for which audit info
-# is available and build the medium of the respective start-
-# and end dates.
-set base_sql "
-		select	audit.*
-		from	im_projects parent, 
-			im_projects child,
-			im_audits audit
-		where	parent.project_id = $main_project_id and 
-			child.parent_id = parent.project_id
-			$milestone_sql and
-			(audit.audit_object_id = child.project_id or audit.audit_object_id = parent.project_id)
-"
-
-# ad_return_complaint 1 "<pre>xxx\n[join [db_list_of_lists base $base_sql] "\n"]\n$base_sql</pre>"
+foreach mid $milestone_list { set milestone_name_hash($mid) [acs_object_name $mid] }
 
 
-# Get the list of available milestones
-set milestone_ids_sql "
-	select	distinct
-		p.project_id,
-		p.project_name,
-		p.start_date
-	from	($base_sql) b,
-		im_projects p
-	where	b.audit_object_id = p.project_id and
-		p.parent_id is not null
-	order by
-	      p.start_date
-"
-set milestone_ids {}
-db_foreach milestones $milestone_ids_sql {
-    lappend milestone_ids $project_id
-    set milestone_hash($project_id) $project_name
-}
-
+# -------------------------------------------------------------
+# Compile the dates on which we want to report
+# -------------------------------------------------------------
 
 # Get the list of distinct dates when changes have ocurred
-set date_days_sql "
+set audit_julians_sql "
 	select distinct
-		audit_date::date
-	from	($base_sql) d
-	order by audit_date
+		to_char(audit_date, 'J') as audit_julian
+	from	im_audits a
+	where	a.audit_object_id in ([join $milestone_list ","])
+	order by to_char(audit_date, 'J')
 "
-set audit_dates [db_list audit_dates $date_days_sql]
+set audit_julians [db_list audit_julians $audit_julians_sql]
 
-set max_entries 10
-if {[llength $audit_dates] > $max_entries} {
-   set sample_factor [expr int([llength $audit_dates] / $max_entries)]
-   set list [list]
-   for {set i 0} {$i < [llength $audit_dates]} {incr i} {
-       if {0 == [expr $i % $sample_factor]} {lappend list [lindex $audit_dates $i]}
-   }
-   set audit_dates $list
+# Algorithm to reduce the number of horizontal data points:
+# Check for the shortest interval between dates and remove this entry
+set max_cnt [llength $audit_julians]
+while {$max_cnt > 0 && [llength $audit_julians] > $audit_dates_max_entries} {
+
+    set last_date [lindex $audit_julians 0]
+    set lowest_diff 100000
+    set lowest_diff_idx -1
+    # Exclude the first and the last element of the audit_julians list
+    for {set j 1} { $j < [expr [llength $audit_julians] - 1]} {incr j} {
+	set val [lindex $audit_julians $j]
+	set diff [expr $val - $last_date]
+	if {$diff < $lowest_diff} {
+	    set lowest_diff $diff
+	    set lowest_diff_idx $j
+	}
+	set last_date $val
+    }
+    ns_log Notice "milestone-tracker.tcl: max_cnt=$max_cnt: lowest_diff=$lowest_diff, lowest_diff_idx=$lowest_diff_idx in $audit_julians"
+    set audit_julians [lreplace $audit_julians $lowest_diff_idx $lowest_diff_idx]
+    ns_log Notice "milestone-tracker.tcl: max_cnt=$max_cnt: new audit_julians= $audit_julians"
+
+    incr max_cnt -1
 }
-# ad_return_complaint 1 "<pre>sample_factor=$sample_factor\n$audit_dates</pre>"
+
+set diff_list [list]
+set audit_dates [list]
+set last_j [lindex $audit_julians 0]
+foreach j $audit_julians {
+    lappend audit_dates [dt_julian_to_ansi $j]
+    set diff [expr $j - $last_j]
+    lappend diff_list $diff
+    set last_j $j
+
+}
+
+if {"" eq $audit_dates} {
+    set show_diagram_p 0
+    return
+}
 
 
-# Calculate start and end date for X axis and
-# format the start and end date for JavaScript
-db_1row start_end "
-	select	min(audit_date) as audit_start_date,
-		max(audit_date) as audit_end_date
-	from	($date_days_sql) t
-"
+# ad_return_complaint 1 "<table><tr><td>[join $diff_list "</td><td>"]</td></tr><tr><td>[join $audit_dates "</td><td>"]</td></tr></table>"
+# ad_page_abort
 
-db_0or1row start_end "
-	select	min(h.day)::date as hours_start_date,
-		main_p.start_date::date as main_project_start_date,
-		max(h.day)::date as hours_end_date,
-		main_p.end_date::date as main_project_end_date
-	from	im_projects main_p,
-		im_projects sub_p,
-		im_hours h
-	where	main_p.project_id = :main_project_id and
-		sub_p.tree_sortkey between main_p.tree_sortkey and tree_right(main_p.tree_sortkey) and
-		sub_p.project_id = h.project_id
-	group by
-		main_p.start_date, main_p.end_date
-"
 
-# Skip and abort the portlet if there are no hours logged for the project
-if {![info exists main_project_start_date]} { return  }
 
 # -----------------------------------------------
 # Determine Start- and End date for the Tracker
 #
-# Use the main_project's start and end dates as a base.
-# Extend the base only if there are hours logged before
-# or after this interval
-set start_date $main_project_start_date
-if {$hours_start_date < $start_date} { set start_date $hours_start_date }
-
-set end_date $main_project_end_date
-if {$hours_end_date > $end_date} { set end_date $hours_end_date }
-
-# ad_return_complaint 1 "audit_start_date=$audit_start_date<br>hours_start_date=$hours_start_date<br>main_project_start_date=$main_project_start_date<br>&nbsp;<br>audit_end_date=$audit_end_date<br>hours_end_date=$hours_end_date<br>main_project_end_date=$main_project_end_date"
+set tracker_start_date [lindex $audit_dates 0]
+set tracker_end_date [lindex $audit_dates end]
+set yrange_start_date $tracker_start_date
+set yrange_end_date $tracker_end_date
 
 
-
-# ad_return_complaint 1 "$start_date - $end_date"
-regexp {^(....)\-(..)\-(..)$} $start_date match year month day
-set start_date_js "new Date($year, $month, $day)"
-regexp {^(....)\-(..)\-(..)$} $end_date match year month day
-set end_date_js "new Date($year, $month, $day)"
-
-
-# Select out the project start as base for the Y axis
-db_1row info "
-select	start_date::date as main_project_start_date
-from	im_projects
-where	project_id = :main_project_id
-"
-
-# Get the average end_date for each of the days for each of the milestones
-set changes_sql "
-select	t.project_id,
-	t.audit_date,
-	avg(end_date_julian)::integer as end_date_julian,
-	to_date(round(avg( end_date_julian ))::text, 'J') as end_date
-from
-	(select	b.audit_object_id as project_id,
-		b.audit_date::date as audit_date,
-		to_char(im_audit_value(b.audit_value, 'end_date')::date, 'J')::integer as end_date_julian
-	from	($date_days_sql) d
-		LEFT OUTER JOIN ($base_sql) b ON (d.audit_date::date = b.audit_date::date)
-	where	b.audit_date::date >= :start_date::date and 
-		b.audit_date::date <= :end_date::date
-	) t
-group by
-	t.project_id, t.audit_date
-order by
-	t.audit_date, t.project_id
-"
-
-# Write the data into separate hash array per milestone
-set y_axis_min_date $main_project_start_date
-set y_axis_max_date "2000-01-01"
-db_foreach milestone_end_dates $changes_sql {
-    set key "$project_id-$audit_date"
-    regexp {^(....)\-(..)\-(..)$} $end_date match year month day
-    set hash($key) "new Date($year, $month, $day)"
-
-    if {[string compare $end_date $y_axis_max_date] > 0} { set y_axis_max_date $end_date }
-    if {[string compare $end_date $y_axis_min_date] < 0} { set y_axis_min_date $end_date }
+# Initialize the maximum end_date per milestone
+foreach mid $milestone_list {
+    set milestone_end_date_hash($mid) "2000-01-01"
 }
 
-regexp {^(....)\-(..)\-(..)$} $y_axis_min_date match year month day
-set y_axis_min_date_js "new Date($year, $month, $day)"
 
-regexp {^(....)\-(..)\-(..)$} $y_axis_max_date match year month day
-set y_axis_max_date_js "new Date($year, $month, $day)"
+# -------------------------------------------------------------
+# Gather the data to be displayed
+# -------------------------------------------------------------
 
-# ad_return_complaint 1 "$y_axis_min_date - $y_axis_max_date"
+# Get the "hard" cell value points from the audit
+set cell_sql "
+	select	a.audit_object_id,
+		a.audit_date::date as audit_date,
+		substring(im_audit_value(a.audit_value, 'start_date') for 10) as start_date,
+		substring(im_audit_value(a.audit_value, 'end_date') for 10) as end_date
+	from	im_audits a
+	where	a.audit_date::date in ('[join $audit_dates "','"]') and
+		a.audit_object_id in ([join $milestone_list ","])
+	order by
+		a.audit_object_id,
+		a.audit_date
+"
+db_foreach cells $cell_sql {
+    set key "$audit_object_id-$audit_date"
+    set cell_hash($key) [string range $end_date 0 9]
+
+    # Calculate the maximum values for X and Y axis
+    if {$start_date < $yrange_start_date} { set yrange_start_date $start_date }
+    if {$end_date > $yrange_end_date} { set yrange_end_date $end_date }
+
+    # Find max(end_date) of the milestone
+    if {$end_date > $milestone_end_date_hash($audit_object_id)} { set milestone_end_date_hash($audit_object_id) $end_date }
+}
+
+
+# Extrapolate the cell values for audit_dates that don't have data
+set audit_dates_rev [lreverse $audit_dates]
+foreach oid $milestone_list {
+
+    # Roll values along the time axis towards cells without values
+    set end_date ""
+    foreach d $audit_dates {
+	set key "$oid-$d"
+	if {[info exists cell_hash($key)]} {
+	    set end_date $cell_hash($key)
+	} else {
+	    if {"" ne $end_date} { set cell_hash($key) $end_date }
+	}
+    }
+
+    # There may be empty values in the beginning of the report interval
+    # So now go against the time axis and fill those holes with the future value
+    set end_date ""
+    foreach d $audit_dates_rev {
+	set key "$oid-$d"
+	if {[info exists cell_hash($key)]} {
+	    set end_date $cell_hash($key)
+	} else {
+	    if {"" ne $end_date} { set cell_hash($key) $end_date }
+	}
+    }
+}
+# now the cell_hash should have a value for every oid / date combination
+# ad_return_complaint 1 [array get cell_hash]
+
+
+regexp {^(....)\-(..)\-(..)$} $tracker_start_date match year month day
+set tracker_start_date_js "new Date($year, $month, $day)"
+regexp {^(....)\-(..)\-(..)$} $tracker_end_date match year month day
+set tracker_end_date_js "new Date($year, $month, $day)"
+
+regexp {^(....)\-(..)\-(..)$} $yrange_start_date match year month day
+set yrange_start_date_js "new Date($year, $month, $day)"
+regexp {^(....)\-(..)\-(..)$} $yrange_end_date match year month day
+set yrange_end_date_js "new Date($year, $month, $day)"
+
+
+
+set tracker_start_julian [dt_ansi_to_julian_single_arg $tracker_start_date]
+set tracker_end_julian [dt_ansi_to_julian_single_arg $tracker_end_date]
+set tracker_duration_days [expr $tracker_end_julian - $tracker_start_julian]
+set tracker_duration_months [expr $tracker_duration_days / 30.0]
+set tracker_step_months [expr 1 + int($tracker_duration_months / 10.0)]
+
+set yrange_start_julian [dt_ansi_to_julian_single_arg $yrange_start_date]
+set yrange_end_julian [dt_ansi_to_julian_single_arg $yrange_end_date]
+set yrange_duration_days [expr $yrange_end_julian - $yrange_start_julian]
+set yrange_duration_months [expr $yrange_duration_days / 30.0]
+set yrange_step_months [expr 1 + int($yrange_duration_months / 10.0)]
+
+# ad_return_complaint 1 $yrange_duration_months
+
+
 
 # -----------------------------------------------------------------
 # Format the data JSON and HTML
@@ -221,13 +237,15 @@ set debug_html "<table>"
 
 # Header row
 set row "<td class=rowtitle>Date</td>"
-foreach id $milestone_ids {
-    set milestone_name $milestone_hash($id)
-    append row "<td class=rowtitle>$milestone_name</td>\n"
+foreach mid $milestone_list {
+    set milestone_name $milestone_name_hash($mid)
+    set milestone_url [export_vars -base "/intranet/projects/view" {{project_id $mid}}]
+    append row "<td class=rowtitle><a href=$milestone_url target=_blank>$milestone_name</a></td>\n"
 }
 append debug_html "<tr class=rowtitle>$row</tr>\n"
 
 # Loop through all available audit records and write out data and HTML lines
+set cnt 0
 foreach audit_date $audit_dates {
 
     # Reformat date for javascript
@@ -235,26 +253,35 @@ foreach audit_date $audit_dates {
     set data_line "{date: new Date($year, $month, $day)"
 
     # Loop through the columns
-    set row "<td>$audit_date</td>"
-    foreach id $milestone_ids {
-	set v "''"
-	set key "$id-$audit_date"
-	if {[info exists hash($key)]} { set v $hash($key) }
-	append data_line ", m$id: $v"
+    set row "<td><nobr>$audit_date</nobr></td>"
+    foreach mid $milestone_list {
+	set key "$mid-$audit_date"
+	set v ""
+	if {[info exists cell_hash($key)]} { set v $cell_hash($key) }
+	regexp {^(....)\-(..)\-(..)$} $v match year month day
+	set v_js "new Date($year, $month, $day)"
+
+	# Skip values of milestones after they have been closed
+	# Exception: The very first entry in order to show something in case of demo data etc.
+	set milestone_max_end_date $milestone_end_date_hash($mid)
+	if {0 != $cnt && $audit_date > $milestone_max_end_date} {
+	    set v_js "undefined"
+	    set v "undefined"
+	}
+
+	append data_line ", m$mid: $v_js"
 	append row "<td><nobr>$v</nobr></td>\n"
     }
     append data_line "}"
     lappend data_list $data_line
 
     append debug_html "<tr class=rowtitle>$row</tr>\n"
+    incr cnt
 }
 append debug_html "</table>"
+#ad_return_complaint 1 $debug_html
+#ad_return_complaint 1 $data_list
 
-# ad_return_complaint 1 $debug_html
-
-
-
-# ad_return_complaint 1 "<pre>[join $data_list "\n"]</pre>"
 
 # Compile JSON for data
 set data_json "\[\n"
@@ -265,8 +292,8 @@ append data_json "\t\]\n"
 
 # Compile JSON for field names
 set fields {}
-foreach id $milestone_ids {
-    lappend fields "'m$id'"
+foreach mid $milestone_list {
+    lappend fields "'m$mid'"
 }
 set fields_joined [join $fields ", "]
 set fields_json "\['date', $fields_joined\]"
@@ -277,10 +304,10 @@ set fields_json "\['date', $fields_joined\]"
 
 # Complile the series specs
 set series {}
-foreach id $milestone_ids {
-    set milestone_name $milestone_hash($id)
+foreach id $milestone_list {
+    set milestone_name $milestone_name_hash($id)
     lappend series "{
-	type: 'line', 
+	type: 'milestoneline', 
 	title: '$milestone_name', 
 	axis: \['left','bottom'\], 
 	xField: 'date', 
