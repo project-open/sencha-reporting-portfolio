@@ -93,23 +93,6 @@ SELECT im_component_plugin__new (
 	null,					-- creation_user
 	null,					-- creation_ip
 	null,					-- context_id
-	'Milestone Tracker',			-- plugin_name
-	'sencha-reporting-portfolio',		-- package_name
-	'left',					-- location
-	'/intranet/projects/view',		-- page_url
-	null,					-- view_name
-	10,					-- sort_order
-	'sencha_milestone_tracker -project_id $project_id -diagram_caption "Milestones" -diagram_width 300 -diagram_height 300'
-);
-
-
-SELECT im_component_plugin__new (
-	null,					-- plugin_id
-	'im_component_plugin',			-- object_type
-	now(),					-- creation_date
-	null,					-- creation_user
-	null,					-- creation_ip
-	null,					-- context_id
 	'EVA Diagram',				-- plugin_name
 	'sencha-reporting-portfolio',		-- package_name
 	'bottom',				-- location
