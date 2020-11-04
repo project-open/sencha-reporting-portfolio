@@ -11,7 +11,7 @@
     <h1>Stacked Bar Chart Sample</h1> 
 
 <div id=@diagram_id@></div>
-<script type='text/javascript'>
+<script type='text/javascript' <if @::__csp_nonce@ not nil>nonce="@::__csp_nonce;literal@"</if>>
 Ext.require(['Ext.chart.*', 'Ext.Window', 'Ext.fx.target.Sprite', 'Ext.layout.container.Fit']);
 
     window.store1 = Ext.create('Ext.data.JsonStore', {
@@ -52,7 +52,7 @@ Ext.onReady(function () {
 	    xField: 'x_axis',
 	    yField: 'y_axis',
 	    highlight: true,
-	    renderer: createHandler('xxx'),
+	    renderer: createHandler(),
 	    label: {
                 display: 'middle',
                 field: 'caption',

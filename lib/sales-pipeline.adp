@@ -1,5 +1,5 @@
 <div id=@diagram_id@></div>
-<script type='text/javascript'>
+<script type='text/javascript' <if @::__csp_nonce@ not nil>nonce="@::__csp_nonce;literal@"</if>>
 
 // Ext.Loader.setConfig({enabled: true});
 Ext.Loader.setPath('Ext.ux', '/sencha-v411/examples/ux');

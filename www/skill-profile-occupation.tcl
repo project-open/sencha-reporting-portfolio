@@ -130,8 +130,8 @@ ad_form \
     -form {
     	{group_id:text(select),optional {label "Group/Profile"} {options $group_options}}
     	{cost_center_id:text(select),optional {label "Department"} {options $cost_center_options}}
-	{start_date:text(text) {label "[_ intranet-timesheet2.Start_Date]"} {value "$start_date"} {html {size 10}} {after_html {<input type="button" style="height:20px; width:20px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('start_date', 'y-m-d');" >}}}
-	{end_date:text(text) {label "[_ intranet-timesheet2.End_Date]"} {value "$end_date"} {html {size 10}} {after_html {<input type="button" style="height:20px; width:20px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('end_date', 'y-m-d');" >}}}
+	{start_date:text(text) {label "[_ intranet-timesheet2.Start_Date]"} {value "$start_date"} {html {size 10}} {after_html {<input id=start_date_calendar type="button" style="height:20px; width:20px; background: url('/resources/acs-templating/calendar.gif');" >}}}
+	{end_date:text(text) {label "[_ intranet-timesheet2.End_Date]"} {value "$end_date"} {html {size 10}} {after_html {<input id=end_date_calendar type="button" style="height:20px; width:20px; background: url('/resources/acs-templating/calendar.gif');" >}}}
 	{project_status_id:text(im_category_tree),optional {label "[lang::message::lookup {} intranet-core.Project_status {Project Status}]"} {custom {category_type "Intranet Project Status" translate_p 1 package_key "intranet-core"} } }
     	{aggregation_level:text(select),optional {label "Aggregation Level"} {options $aggregation_options}}
     }

@@ -10,7 +10,7 @@
 <body id="docbody">
 <h1>Milestone Tracker</h1>
 <div id=milestone_tracker_41290226></div>
-<script type='text/javascript'> 
+<script type='text/javascript' <if @::__csp_nonce@ not nil>nonce="@::__csp_nonce;literal@"</if>>
 
 Ext.require(['Ext.chart.*', 'Ext.Window', 'Ext.fx.target.Sprite', 'Ext.layout.container.Fit']);
 Ext.require(['Ext.Window', 'Ext.fx.target.Sprite', 'Ext.layout.container.Fit']);

@@ -1,6 +1,6 @@
 <if "1" eq @show_diagram_p@>
 <div id=@diagram_id@></div>
-<script type='text/javascript'>
+<script type='text/javascript' <if @::__csp_nonce@ not nil>nonce="@::__csp_nonce;literal@"</if>>
 
 // Special variant of a line series for milestone tracker...
 // ... that actually skips "undefined" values in the store.
