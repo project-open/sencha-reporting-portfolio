@@ -56,7 +56,7 @@ if {$hours_end_date > $diagram_end_date} { set diagram_end_date $hours_end_date 
 
 # Pull out for every day of the diagram the planned work per project.
 # Later we will aggregate this amount per month and format the result
-# in JSON format for JavaScript use.
+# in JSON format for JS use.
 set workload_sql "
     	select	to_char(day.day, 'YYYY-MM') as month,
 		to_char(day.day, 'YYYY-IW') as week,
