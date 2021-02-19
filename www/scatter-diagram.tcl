@@ -3,7 +3,7 @@
 # Copyright (C) 2011 ]project-open[
 #
 # All rights reserved. Please check
-# http://www.project-open.com/license/ for details.
+# https://www.project-open.com/license/ for details.
 
 set diagram_width 200
 set diagram_height 200
